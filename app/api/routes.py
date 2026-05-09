@@ -18,13 +18,22 @@ from app.services.notification_client import (
 )
 from app.services.payment_service import verify_payment
 
+from app.schemas.booking import (
+    BookingCreate,
+    BookingResponse,
+    BookingCancelResponse
+)
+
 
 router = APIRouter()
 
 
-@router.post("/bookings")
+@router.post(
+    "/bookings",
+    response_model=BookingResponse
+)
 async def create_booking(
-    data: dict,
+    data: BookingCreate,
     authorization: str = Header(None)
 ):
 
@@ -39,7 +48,8 @@ async def create_booking(
 
     user_id = user.get("user_id")
 
-    event_id = data.get("event_id")
+    event_id = data.event_id
+
 
     # 2 Check event availability
     availability = await check_availability(event_id)
@@ -52,9 +62,9 @@ async def create_booking(
 
     # 3 Verify payment
     payment_valid = verify_payment(
-        data.get("card_number"),
-        data.get("cvv"),
-        data.get("expiry_date")
+    data.card_number,
+    data.cvv,
+    data.expiry_date
     )
 
     if not payment_valid:
@@ -89,7 +99,10 @@ async def create_booking(
     }
 
 
-@router.post("/bookings/{booking_id}/cancel")
+@router.patch(
+    "/bookings/{booking_id}/cancel",
+    response_model=BookingCancelResponse
+)
 async def cancel_booking(
     booking_id: str,
     authorization: str = Header(None)

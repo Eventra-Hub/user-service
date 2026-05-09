@@ -15,7 +15,7 @@ async def verify_token(token: str):
     async with httpx.AsyncClient() as client:
 
         response = await client.get(
-            f"{settings.REGISTRATION_SERVICE_URL}/verify",
+            f"{settings.REGISTRATION_SERVICE_URL}/auth/verify",
             headers=headers
         )
 
