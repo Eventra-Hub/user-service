@@ -34,3 +34,17 @@ async def release_seat(event_id: str):
         )
 
         return response.json()
+
+
+async def get_event(event_id: str):
+
+    async with httpx.AsyncClient() as client:
+
+        response = await client.get(
+            f"{settings.EVENT_SERVICE_URL}/events/{event_id}"
+        )
+
+        if response.status_code != 200:
+            return None
+
+        return response.json()

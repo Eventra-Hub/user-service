@@ -9,12 +9,15 @@ from app.services.auth_client import verify_token
 from app.services.event_client import (
     check_availability,
     reserve_seat,
-    release_seat
+    release_seat,
+    get_event
 )
 
 from app.services.notification_client import (
     send_booking_confirmation,
-    send_booking_cancelled
+    send_booking_cancelled,
+    send_organizer_new_booking,
+    send_organizer_booking_cancelled
 )
 from app.services.payment_service import verify_payment
 
@@ -87,11 +90,21 @@ async def create_booking(
 
     result = await bookings_collection.insert_one(booking)
 
-    # 6 Send notification
+    # 6 Send notifications (attendee + organizer)
     await send_booking_confirmation(
         user_id=user_id,
         event_id=event_id
     )
+
+    event = await get_event(event_id)
+    if event:
+        organizer_id = event.get("organizer_id")
+        if organizer_id and str(organizer_id) != str(user_id):
+            await send_organizer_new_booking(
+                organizer_id=str(organizer_id),
+                event_id=event_id,
+                event_title=event.get("title"),
+            )
 
     return {
         "message": "Booking confirmed",
@@ -160,11 +173,21 @@ async def cancel_booking(
     # 6 Release seat
     await release_seat(booking["event_id"])
 
-    # 7 Send notification
+    # 7 Send notifications (attendee + organizer)
     await send_booking_cancelled(
         user_id=user_id,
         event_id=booking["event_id"]
     )
+
+    event = await get_event(booking["event_id"])
+    if event:
+        organizer_id = event.get("organizer_id")
+        if organizer_id and str(organizer_id) != str(user_id):
+            await send_organizer_booking_cancelled(
+                organizer_id=str(organizer_id),
+                event_id=booking["event_id"],
+                event_title=event.get("title"),
+            )
 
     return {
         "message": "Booking cancelled successfully"
